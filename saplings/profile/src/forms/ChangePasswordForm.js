@@ -19,7 +19,7 @@ import crypto from 'crypto';
 import { sha256 } from 'js-sha256';
 import { decryptKey, encryptKey, getSharedConfig } from 'splinter-saplingjs';
 import { MultiStepForm, Step, StepInput } from './MultiStepForm';
-import { http } from '../http';
+import { HttpClient } from '../http';
 import { Loader } from '../Loader';
 import { useDebounce } from '../useDebounce';
 
@@ -112,13 +112,10 @@ export function ChangePasswordForm({ keys }) {
 
     try {
       const { splinterURL } = getSharedConfig().canopyConfig;
-      await http(
-        'PUT',
+      const httpClient = new HttpClient(token);
+      await httpClient.put(
         `${splinterURL}/biome/users/${userId}`,
         body,
-        request => {
-          request.setRequestHeader('Authorization', `Bearer ${token}`);
-        }
       );
       setLoadingState('success');
       setState({
@@ -127,7 +124,7 @@ export function ChangePasswordForm({ keys }) {
         confirmPassword: ''
       });
     } catch (err) {
-      const e = JSON.parse(err);
+      const e = err.data;
       setLoadingState('failure');
       setError(
         e.message

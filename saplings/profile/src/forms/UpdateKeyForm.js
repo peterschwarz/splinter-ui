@@ -19,7 +19,7 @@ import { getSharedConfig } from 'splinter-saplingjs';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { Input } from '../Input';
-import { http } from '../http';
+import { HttpClient } from '../http';
 
 import './UpdateKeyForm.scss';
 
@@ -38,12 +38,11 @@ export function UpdateKeyForm({ userKey, closeFn }) {
 
     try {
       const { splinterURL } = getSharedConfig().canopyConfig;
-      await http('PATCH', `${splinterURL}/biome/keys`, body, request => {
-        request.setRequestHeader('Authorization', `Bearer ${canopyUser.token}`);
-      });
+      const httpClient = new HttpClient(canopyUser.token);
+      await httpClient.patch(`${splinterURL}/biome/keys`, body);
       closeFn();
     } catch (err) {
-      const { message } = JSON.parse(err);
+      const { message } = err.data;
       setErrorMsg(message);
       setError(true);
     }

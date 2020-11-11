@@ -20,7 +20,7 @@ import { Secp256k1Context, Secp256k1PrivateKey } from 'transact-sdk-javascript';
 import crypto from 'crypto';
 import { MultiStepForm, Step, StepInput } from './MultiStepForm';
 import { Loader } from '../Loader';
-import { http } from '../http';
+import { HttpClient } from '../http';
 
 import './AddKeyForm.scss';
 
@@ -75,20 +75,22 @@ export function AddKeyForm({ successFn }) {
     const encryptedPrivateKey = JSON.parse(
       encryptKey(state.privateKey, keySecret)
     );
-    const body = JSON.stringify({
+    const body = {
       display_name: state.name,
       encrypted_private_key: encryptedPrivateKey,
       public_key: state.publicKey,
       user_id: canopyUser.userId
-    });
+    };
 
     try {
       const { splinterURL } = getSharedConfig().canopyConfig;
-      await http('POST', `${splinterURL}/biome/keys`, body, request => {
-        request.setRequestHeader('Authorization', `Bearer ${canopyUser.token}`);
-      });
+      await new HttpClient(canopyUser.token).post(
+        `${splinterURL}/biome/keys`,
+        JSON.stringify(body)
+      );
+
       reset();
-      successFn(JSON.parse(body));
+      successFn(body);
     } catch (err) {
       try {
         const e = JSON.parse(err);

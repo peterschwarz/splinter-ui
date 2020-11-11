@@ -30,7 +30,7 @@ import { AddKeyForm } from './forms/AddKeyForm';
 import { UpdateKeyForm } from './forms/UpdateKeyForm';
 import { EnterPasswordForm } from './forms/EnterPasswordForm';
 import { OverlayModal } from './OverlayModal';
-import { http } from './http';
+import { HttpClient } from './http';
 
 export function Profile() {
   const [modalActive, setModalActive] = useState(false);
@@ -43,20 +43,16 @@ export function Profile() {
   const user = getUser();
 
   useEffect(() => {
-    async function fetchUserKeys() {
+    function fetchUserKeys() {
       if (user) {
-        try {
-          const { splinterURL } = getSharedConfig().canopyConfig;
-          const userKeys = await http(
-            'GET',
-            `${splinterURL}/biome/keys`,
-            {},
-            request => {
-              request.setRequestHeader('Authorization', `Bearer ${user.token}`);
-            }
-          );
-          setKeys(JSON.parse(userKeys).data);
-        } catch (err) {
+        const { splinterURL } = getSharedConfig().canopyConfig;
+        const httpClient = new HttpClient(user.token);
+        httpClient.get(
+          `${splinterURL}/biome/keys`,
+        ).then((userKeys) => {
+          setKeys(userKeys.data);
+        })
+        .catch((err) =>{
           switch (err.code) {
             case '401':
               window.location.href = `${window.location.origin}/login`;
@@ -64,7 +60,7 @@ export function Profile() {
             default:
               break;
           }
-        }
+        });
       } else {
         window.location.href = `${window.location.origin}/login`;
       }
@@ -82,28 +78,23 @@ export function Profile() {
     setModalActive(true);
   };
 
-  const updateKeyCallback = async () => {
+  const updateKeyCallback = () => {
     setModalActive(false);
-    try {
       const { splinterURL } = getSharedConfig().canopyConfig;
-      const userKeys = await http(
-        'GET',
+      const httpClient = new HttpClient(user.token);
+      httpClient.get(
         `${splinterURL}/biome/keys`,
-        {},
-        request => {
-          request.setRequestHeader('Authorization', `Bearer ${user.token}`);
+      )
+      .then((userKeys) => setKeys(userKeys.data))
+      .catch((err) => {
+        switch (err.code) {
+          case '401':
+            window.location.href = `${window.location.origin}/login`;
+            break;
+          default:
+            break;
         }
-      );
-      setKeys(JSON.parse(userKeys).data);
-    } catch (err) {
-      switch (err.code) {
-        case '401':
-          window.location.href = `${window.location.origin}/login`;
-          break;
-        default:
-          break;
-      }
-    }
+      });
   };
 
   const formView = ({ formName, params }) => {

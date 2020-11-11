@@ -15,33 +15,70 @@
  */
 
 /**
- * Wrapper function to set up XHR.
+ * Wrapper function to set up fetch requests.
  * @param {string}      method    HTTP method for the request
  * @param {string}      url       endpoint to make the request to
  * @param {object}      data      Byte array representation of the request body
- * @param {function}    headerFn  Function to set the correct request headers
+ * @param {object}      headers   optional set of request headers
  */
-export async function http(method, url, data, headerFn) {
-  return new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open(method, url);
-    if (headerFn) {
-      headerFn(request);
+
+function HttpClient(token) {
+  console.log(`*** constructed with token ${token} ***`);
+  this.token = token;
+}
+
+HttpClient.prototype.http = function http(method, url, data, headers) {
+  console.log(`*** ${method} ${url} ***`);
+
+  fetch(url, {
+    method,
+    body: data,
+    headers: {
+      ...headers,
+      Authorization: `Bearer ${this.token}`
+    },
+    credentials: 'include'
+  })
+  .catch((e) => {
+    console.log('wtf', e);
+    throw e;
+  })
+  .then((response) => Promise.all([response, response.ejson()]))
+  .then(([response, json]) => {
+    console.log(`*** ${method} ${url} ${response.ok ? 'OK' : response.status} ***`);
+    if (!response.ok) {
+      throw {
+        ...json,
+        // alias status
+        code: response.status,
+        status: response.status,
+      };
     }
-    request.onload = () => {
-      if (request.status >= 200 && request.status < 300) {
-        resolve(request.response);
-      } else {
-        reject(request.response);
-      }
+    return {
+      // alias status
+      code: response.status,
+      status: response.status,
+      data: json
     };
-    request.onerror = () => {
-      reject(
-        Error(
-          'The server has encountered an error. Please contact the administrator.'
-        )
-      );
-    };
-    request.send(data);
-  });
+  })
+}
+
+HttpClient.prototype.get = function get(url, headers = {}) {
+  return this.http('GET', url, null, headers);
+}
+
+HttpClient.prototype.post = function post(url, data, headers = {}) {
+  return this.http('POST', url, data, headers);
+}
+
+HttpClient.prototype.put = function put(url, data, headers = {}) {
+  return this.http('PUT', url, data, headers);
+}
+
+HttpClient.prototype.patch = function patch(url, data, headers = {}) {
+  return this.http('PATCH', url, data, headers);
+}
+
+HttpClient.prototype.del = function del(url, headers = {}) {
+  return this.http('DELETE', url, null, headers);
 }
